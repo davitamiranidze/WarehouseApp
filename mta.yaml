@@ -1,0 +1,189 @@
+_schema-version: "3.3.0"
+ID: WarehouseApp
+description: A simple CAP project.
+version: 1.0.0
+
+modules:
+  - name: WarehouseApp-srv
+    type: nodejs
+    path: gen/srv
+    requires:
+      - name: WarehouseApp-auth
+      - name: WarehouseApp-db
+      - name: WarehouseApp-destination
+    provides:
+      - name: srv-api
+        properties:
+          srv-url: ${default-url}
+    parameters:
+      buildpack: nodejs_buildpack
+      instances: 1
+    build-parameters:
+      builder: npm-ci
+
+  - name: WarehouseApp-db-deployer
+    type: hdb
+    path: gen/db
+    requires:
+      - name: WarehouseApp-db
+    parameters:
+      buildpack: nodejs_buildpack
+
+  - name: WarehouseApp-app-deployer
+    type: com.sap.application.content
+    path: gen
+    requires:
+      - name: WarehouseApp-auth
+
+      - name: srv-api
+
+      - name: WarehouseApp-html5-repo-host
+        parameters:
+          config:
+            HTML5Runtime_enabled: true
+          content-target: true
+
+    parameters:
+      config:
+        destinations:
+          - Name: srv-api
+            Type: HTTP
+            ProxyType: Internet
+            Authentication: NoAuthentication
+            URL: ~{srv-api/srv-url}
+            HTML5.DynamicDestination: true
+            HTML5.ForwardAuthToken: true
+
+    build-parameters:
+      build-result: app/
+      requires:
+        - name: WarehouseAppstockitems
+          artifacts:
+            - stockitems.zip
+          target-path: app/
+
+  - name: WarehouseAppstockitems
+    type: html5
+    path: app/stockitems
+    build-parameters:
+      builder: custom
+      commands:
+        - npm install
+        - npm run build:cf
+      build-result: dist
+      supported-platforms: []
+
+  - name: WarehouseApp-destinations
+    type: com.sap.application.content
+    requires:
+      - name: WarehouseApp-auth
+        parameters:
+          service-key:
+            name: WarehouseApp-auth-key
+
+      - name: WarehouseApp-html5-repo-host
+        parameters:
+          service-key:
+            name: WarehouseApp-html5-repo-host-key
+
+      - name: srv-api
+
+      - name: WarehouseApp-destination
+        parameters:
+          content-target: true
+
+    parameters:
+      content:
+        instance:
+          destinations:
+            - Name: WarehouseApp-html5-repository
+              ServiceInstanceName: WarehouseApp-html5-repo-host
+              ServiceKeyName: WarehouseApp-html5-repo-host-key
+              sap.cloud.service: WarehouseApp.service
+
+            - Name: WarehouseApp-auth
+              Authentication: OAuth2UserTokenExchange
+              ServiceInstanceName: WarehouseApp-auth
+              ServiceKeyName: WarehouseApp-auth-key
+              sap.cloud.service: WarehouseApp.service
+
+          existing_destinations_policy: update
+
+    build-parameters:
+      no-source: true
+
+resources:
+  - name: WarehouseApp-auth
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: xsuaa
+      service-plan: application
+      path: ./xs-security.json
+      config:
+        xsappname: WarehouseApp-${org}-${space}
+        tenant-mode: dedicated
+        oauth2-configuration:
+          credential-types:
+            - binding-secret
+            - x509
+        role-collections:
+          - name: Viewer (WarehouseApp ${org}-${space})
+            description: generated
+            role-template-references:
+              - $XSAPPNAME.Viewer
+
+          - name: Admin (WarehouseApp ${org}-${space})
+            description: generated
+            role-template-references:
+              - $XSAPPNAME.Admin
+
+  - name: WarehouseApp-db
+    type: com.sap.xs.hdi-container
+    parameters:
+      service: hana
+      service-plan: hdi-shared
+
+  - name: WarehouseApp-destination
+    type: org.cloudfoundry.managed-service
+    requires:
+      - name: srv-api
+    parameters:
+      service: destination
+      service-plan: lite
+      config:
+        HTML5Runtime_enabled: true
+        init_data:
+          instance:
+            destinations:
+              - Name: ui5
+                Type: HTTP
+                ProxyType: Internet
+                Authentication: NoAuthentication
+                URL: https://ui5.sap.com
+
+              - Name: srv-api
+                Type: HTTP
+                ProxyType: Internet
+                Authentication: NoAuthentication
+                URL: ~{srv-api/srv-url}
+                HTML5.DynamicDestination: true
+                HTML5.ForwardAuthToken: true
+
+            existing_destinations_policy: update
+
+  - name: WarehouseApp-html5-repo-host
+    type: org.cloudfoundry.managed-service
+    parameters:
+      service: html5-apps-repo
+      service-plan: app-host
+
+parameters:
+  deploy_mode: html5-repo
+  enable-parallel-deployments: true
+
+build-parameters:
+  before-all:
+    - builder: custom
+      commands:
+        - npm ci
+        - npx cds build --production
