@@ -49,7 +49,7 @@
         "auth": {
           "kind": "mocked",
           "users": {
-            "alice": {
+            "daviti": {
               "roles": [
                 "Viewer"
               ]

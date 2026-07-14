@@ -63,13 +63,13 @@ annotate service.StockItems with @(
         },
         {
             $Type : 'UI.DataField',
-            Label : 'quantity',
-            Value : quantity,
+            Label : 'unitPrice',
+            Value : unitPrice,
         },
         {
             $Type : 'UI.DataField',
-            Label : 'unitPrice',
-            Value : unitPrice,
+            Label : 'quantity',
+            Value : quantity,
         },
         {
             $Type : 'UI.DataField',
@@ -83,12 +83,12 @@ annotate service.StockItems with @(
         },
     ],
     UI.SelectionFields : [
-        receivedDate,
-        stockStatus,
         product.name,
         supplierOrganization.name,
         supplierOrganization.email,
         supplierOrganization.location,
+        receivedDate,
+        stockStatus,
     ],
     UI.FieldGroup #SupplierOrganisation : {
         $Type : 'UI.FieldGroupType',
@@ -206,28 +206,28 @@ annotate service.StockItems with {
 
 annotate service.Products with {
     name @(
-        Common.Label : 'product/name',
+        Common.Label : 'product',
         Common.FieldControl : #ReadOnly,
         )
 };
 
 annotate service.SupplierOrganizations with {
     name @(
-        Common.Label : 'supplierOrganization/name',
+        Common.Label : 'supplierOrganization ',
         Common.FieldControl : #ReadOnly,
     )
 };
 
 annotate service.SupplierOrganizations with {
     email @(
-        Common.Label : 'supplierOrganization/email',
+        Common.Label : 'supplierOrganization email',
         Common.FieldControl : #ReadOnly,
     )
 };
 
 annotate service.SupplierOrganizations with {
     location @(
-        Common.Label : 'supplierOrganization/location',
+        Common.Label : 'supplierOrganization location',
         Common.FieldControl : #ReadOnly,
     )
 };

@@ -9,15 +9,15 @@ describe("WarehouseService - StockItems", () => {
   const adminAuth = {
     auth: {
       username: "admin",
-      password: ""
-    }
+      password: "",
+    },
   };
 
   const viewerAuth = {
     auth: {
-      username: "alice",
-      password: ""
-    }
+      username: "daviti",
+      password: "",
+    },
   };
 
   let existingStockItem;
@@ -31,17 +31,17 @@ describe("WarehouseService - StockItems", () => {
   beforeAll(async () => {
     const productsResponse = await GET(
       `${servicePath}/Products?$top=1`,
-      adminAuth
+      adminAuth,
     );
 
     const suppliersResponse = await GET(
       `${servicePath}/SupplierOrganizations?$top=1`,
-      adminAuth
+      adminAuth,
     );
 
     const stockItemsResponse = await GET(
       `${servicePath}/StockItems?$top=1`,
-      adminAuth
+      adminAuth,
     );
 
     product = productsResponse.data.value[0];
@@ -50,32 +50,30 @@ describe("WarehouseService - StockItems", () => {
 
     if (!product) {
       throw new Error(
-        "No Product exists. Add Product test data in db/data first."
+        "No Product exists. Add Product test data in db/data first.",
       );
     }
 
     if (!supplier) {
       throw new Error(
-        "No SupplierOrganization exists. Add supplier test data in db/data first."
+        "No SupplierOrganization exists. Add supplier test data in db/data first.",
       );
     }
 
     if (!existingStockItem) {
       throw new Error(
-        "No StockItem exists. Add StockItem test data in db/data first."
+        "No StockItem exists. Add StockItem test data in db/data first.",
       );
     }
   });
 
   /*
-   * 1. GET the main entity collection
+   * Test number 1
+   * GET the main entity collection
    * Verify the expected record count.
    */
   test("GET StockItems returns the expected record count", async () => {
-    const response = await GET(
-      `${servicePath}/StockItems`,
-      adminAuth
-    );
+    const response = await GET(`${servicePath}/StockItems`, adminAuth);
 
     expect(response.status).toBe(200);
     expect(Array.isArray(response.data.value)).toBe(true);
@@ -85,7 +83,8 @@ describe("WarehouseService - StockItems", () => {
   });
 
   /*
-   * 2. GET a single entity by key
+   * Test number 2
+   * GET a single entity by key
    * Verify its field values.
    */
   test("GET one StockItem by ID returns the correct values", async () => {
@@ -93,25 +92,24 @@ describe("WarehouseService - StockItems", () => {
 
     const response = await GET(
       `${servicePath}/StockItems(ID=${id},IsActiveEntity=true)`,
-      adminAuth
+      adminAuth,
     );
 
     expect(response.status).toBe(200);
     expect(response.data.ID).toBe(id);
     expect(response.data.quantity).toBe(existingStockItem.quantity);
     expect(Number(response.data.unitPrice)).toBe(
-      Number(existingStockItem.unitPrice)
+      Number(existingStockItem.unitPrice),
     );
-    expect(response.data.product_ID).toBe(
-      existingStockItem.product_ID
-    );
+    expect(response.data.product_ID).toBe(existingStockItem.product_ID);
     expect(response.data.supplierOrganization_ID).toBe(
-      existingStockItem.supplierOrganization_ID
+      existingStockItem.supplierOrganization_ID,
     );
   });
 
   /*
-   * 3. POST a new record
+    * Test number 3
+   * POST a new record
    * Verify it is created correctly.
    */
   test("POST creates a StockItem correctly", async () => {
@@ -120,13 +118,13 @@ describe("WarehouseService - StockItems", () => {
       supplierOrganization_ID: supplier.ID,
       unitPrice: 20,
       quantity: 5,
-      receivedDate: "2026-07-13"
+      receivedDate: "2026-07-13",
     };
 
     const response = await POST(
       `${servicePath}/StockItems`,
       newStockItem,
-      adminAuth
+      adminAuth,
     );
 
     expect(response.status).toBe(201);
@@ -138,7 +136,8 @@ describe("WarehouseService - StockItems", () => {
   });
 
   /*
-   * 4. Test the custom handler
+   * Test number 4
+   * Test the custom handler
    * Negative unit prices must be rejected.
    */
   test("custom validation rejects a negative unit price", async () => {
@@ -147,24 +146,21 @@ describe("WarehouseService - StockItems", () => {
       supplierOrganization_ID: supplier.ID,
       unitPrice: -10,
       quantity: 5,
-      receivedDate: "2026-07-13"
+      receivedDate: "2026-07-13",
     };
 
     await expect(
-      POST(
-        `${servicePath}/StockItems`,
-        invalidStockItem,
-        adminAuth
-      )
+      POST(`${servicePath}/StockItems`, invalidStockItem, adminAuth),
     ).rejects.toMatchObject({
       response: {
-        status: 400
-      }
+        status: 400,
+      },
     });
   });
 
   /*
-   * 5. Test authorization
+   * Test number 5
+   * Test authorization
    * Viewer can read but cannot create StockItems.
    */
   test("Viewer role is rejected when creating a StockItem", async () => {
@@ -173,19 +169,15 @@ describe("WarehouseService - StockItems", () => {
       supplierOrganization_ID: supplier.ID,
       unitPrice: 15,
       quantity: 2,
-      receivedDate: "2026-07-13"
+      receivedDate: "2026-07-13",
     };
 
     await expect(
-      POST(
-        `${servicePath}/StockItems`,
-        newStockItem,
-        viewerAuth
-      )
+      POST(`${servicePath}/StockItems`, newStockItem, viewerAuth),
     ).rejects.toMatchObject({
       response: {
-        status: 403
-      }
+        status: 403,
+      },
     });
   });
 });

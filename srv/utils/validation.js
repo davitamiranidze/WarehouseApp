@@ -5,46 +5,59 @@ module.exports.validateStockItem = (req) => {
     quantity,
     product_ID,
     supplierOrganization_ID,
-    receivedDate
+    receivedDate,
   } = req.data;
 
+  // Unit price
+  if (unitPrice != null) {
+    const price = Number(unitPrice);
 
-  // Validate fields
-  if (unitPrice != null && unitPrice < 0) {
-    req.error(400, "Unit price cannot be negative.");
+    if (!Number.isFinite(price)) {
+      req.error(400, "Unit price must be a valid number.");
+    } else if (price < 0) {
+      req.error(400, "Unit price cannot be negative.");
+    }
   }
 
-  if (quantity != null && quantity < 0) {
-    req.error(400, "Quantity cannot be negative.");
+  // Quantity
+  if (quantity != null) {
+    const parsedQuantity = Number(quantity);
+
+    if (!Number.isInteger(parsedQuantity)) {
+      req.error(400, "Quantity must be a whole number.");
+    } else if (parsedQuantity < 0) {
+      req.error(400, "Quantity cannot be negative.");
+    }
   }
 
-  if (quantity != null && !Number.isInteger(quantity)) {
-    req.error(400, "Quantity must be a whole number.");
-  }
-
+  // Associations
   if (product_ID !== undefined && !product_ID) {
     req.error(400, "Product is required.");
   }
 
-  if (supplierOrganization_ID !== undefined && !supplierOrganization_ID) {
+  if (
+    supplierOrganization_ID !== undefined &&
+    !supplierOrganization_ID
+  ) {
     req.error(400, "Supplier organization is required.");
   }
 
-
-  // Validate receivedDate (is not after today)
+  // Received date
   if (receivedDate !== undefined) {
     if (!receivedDate) {
       req.error(400, "Received date is required.");
-    } else {
-      const received = new Date(receivedDate);
-      const today = new Date();
-      
-      received.setHours(0, 0, 0, 0);
-      today.setHours(0, 0, 0, 0);
+      return;
+    }
 
-      if (received > today) {
-        req.error(400, "Received date cannot be in the future.");
-      }
+    const received = new Date(`${receivedDate}T00:00:00`);
+    const today = new Date();
+
+    today.setHours(0, 0, 0, 0);
+
+    if (Number.isNaN(received.getTime())) {
+      req.error(400, "Received date is invalid.");
+    } else if (received > today) {
+      req.error(400, "Received date cannot be in the future.");
     }
   }
 };

@@ -1,40 +1,32 @@
 const cds = require("@sap/cds");
 const { validateStockItem } = require("../utils/validation");
+
 const LOG = cds.log("warehouse");
 
-// Handler for stock item operations
 module.exports = function () {
   const { StockItems } = this.entities;
 
-  // Creating a new draft
-  this.before("NEW", StockItems.drafts, (req) => {
-    validateStockItem(req);
-
+  const calculateTotalPrice = (req) => {
     const { unitPrice, quantity } = req.data;
 
     if (unitPrice != null && quantity != null) {
       req.data.totalPrice = unitPrice * quantity;
     }
-  });
+  };
 
-  // Editing an existing draft
-  this.before("PATCH", StockItems.drafts, (req) => {
+  // Create,Edit or Activate a draft
+  this.before(["NEW", "PATCH", "SAVE"], StockItems.drafts, (req) => {
     validateStockItem(req);
+    calculateTotalPrice(req);
   });
 
-  // Activating/saving the draft
-  this.before("SAVE", StockItems.drafts, (req) => {
+  // Direct operations on the active entity
+  this.before(["CREATE", "UPDATE"], StockItems, (req) => {
     validateStockItem(req);
+    calculateTotalPrice(req);
   });
 
-  // Defining total price before creating or updating stock items
-  this.before(["CREATE", "UPDATE"], "StockItems", (req) => {
-    validateStockItem(req);
-    const { unitPrice, quantity } = req.data;
-    req.data.totalPrice = unitPrice * quantity;
-  });
-
-  // Setting stock status after reading stock items
+  // Add computed stock status to READ results
   this.after("READ", StockItems, (data) => {
     const items = Array.isArray(data) ? data : [data];
 
@@ -51,7 +43,7 @@ module.exports = function () {
     }
   });
 
-  // Logging stock item operations
+  // Log active-entity operations
   this.after("CREATE", StockItems, (data) => {
     LOG.info(`Created stock item ${data.ID}`);
   });
